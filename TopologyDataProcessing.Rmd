@@ -1,0 +1,94 @@
+---
+title: "TopologyProjectDataProcessing"
+author: "Kevin Shin"
+date: "4/24/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidytext)
+library(dplyr)
+library(stringr)
+library(tokenizers)
+library(gutenbergr)
+library(janeaustenr)
+library(rapportools)
+```
+##Clean Data set
+
+```{r}
+gutenberg_filtered <- gutenberg_metadata %>% filter(is.na(author)==FALSE) %>% filter(is.na(title)==FALSE) %>% filter(has_text == TRUE) %>%  filter(rights == "Public domain in the USA.") %>% filter(language == "en") %>% filter(author != "Various") %>% filter(author != "Anonymous")
+```
+
+```{r}
+gutenberg_count <- count(gutenberg_filtered, author)
+relevant_authors <- gutenberg_count %>% filter(n >= 10)
+```
+
+###Example
+
+####David Hume Example
+```{r}
+David_Hume <- gutenberg_filtered %>% filter(author == "Hume, David")
+Hume_Works <- gutenberg_download(David_Hume$gutenberg_id)
+```
+
+####Dictionary
+```{r}
+dictionary <- Hume_Works %>% unnest_tokens(word, text)
+cleanDictionary <- transmute(dictionary,word = gsub('[0-9]+', '', str_replace_all(word,"_","")))
+cleanDictionary <- cleanDictionary %>% filter(word != "")
+uniqueWords <- unique(cleanDictionary, incomparables = FALSE)
+```
+
+####A particular book
+```{r}
+Book_4320 <- Hume_Works %>% filter(gutenberg_id == 4320)
+Book_4320 <- mutate(Book_4320, LineNumber=seq.int(nrow(Book_4320)))
+Book_4320 <- Book_4320 %>% filter(LineNumber >= 97)
+```
+
+```{r}
+book_words <- Book_4320 %>%
+  unnest_tokens(word, text) %>%
+  count(LineNumber, word, sort = TRUE)
+
+total_words <- book_words %>% 
+   group_by(LineNumber)
+
+book_words <- book_words %>%
+     bind_tf_idf(word, LineNumber, n)
+
+book_words_filtered <- book_words %>% filter(LineNumber >= 97)
+```
+
+```{r}
+words_4320 <- Book_4320 %>%
+  unnest_tokens(word, text) %>%
+  count(gutenberg_id, word, sort = TRUE)
+```
+
+
+```{r}
+book_words_MAIN <- book_words_filtered %>%  bind_tf_idf(word,gutenberg_id,n)
+transmute(book_words_filtered,gutenberg_id = gutenberg_id, word = str_replace_all(word, "_",""), tf_idf = tf_idf)
+book_words_filtered %>% group_by(gutenberg_id)
+
+total_words <- book_words %>% 
+  group_by(gutenberg_id) %>% 
+  summarize(total = sum(n))
+
+book_words <- left_join(book_words, total_words)
+
+
+```
+
+TO DO: 
+Each book (gutenberg_id) generates a point cloud. Repeat this process for multiple books, so that you get the relevant dictionary. Making the point clouds should take some time computationally but be rather simple. If in book, include as a column.
+
+
+Analysis: Ideally, there should be some "trend" of adding more cycles, subtracting more, etc.
