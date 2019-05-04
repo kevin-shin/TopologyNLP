@@ -16,15 +16,35 @@ library(dplyr)
 library(stringr)
 library(tokenizers)
 library(gutenbergr)
-library(janeaustenr)
 library(rapportools)
 library(textstem)
 library(text2vec)
 library(stopwords)
+library(TDA)
+library(philentropy)
+library(lsa)
+library(qlcMatrix)
+```
+###Load in Data
+```{r}
+gutenberg_filtered <- gutenberg_metadata %>% filter(is.na(author)==FALSE) %>% filter(is.na(title)==FALSE) %>% filter(has_text == TRUE) %>%  filter(rights == "Public domain in the USA.") %>% filter(language == "en")
 ```
 
 ```{r}
-gutenberg_filtered <- gutenberg_metadata %>% filter(is.na(author)==FALSE) %>% filter(is.na(title)==FALSE) %>% filter(has_text == TRUE) %>%  filter(rights == "Public domain in the USA.") %>% filter(language == "en")
+gutenberg_filtered %>% filter(gutenberg_bookshelf == "Horror")
+```
+
+###Selecting categories
+```{r}
+topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Horror")
+
+for (value in topics) {
+  subsetBookshelf <- gutenberg_filtered %>% filter(gutenberg_bookshelf == value)
+  print(subsetBookshelf)
+}
+```
+
+```{r}
 book_1257 <- gutenberg_download(1257,strip=TRUE)
 book_1257_paragraph <- unnest_tokens(book_1257,input="text",output="Paragraph",token="paragraphs")
 View(book_1257_paragraph)
@@ -39,9 +59,66 @@ it_train = itoken(book_1257_paragraph$Paragraph,
              preprocessor = prep_fun, 
              tokenizer = tok_fun, 
              progressbar = FALSE)
+
 vocab = create_vocabulary(it_train, stopwords = stopwords(source = "smart"))
 vectorizer = vocab_vectorizer(vocab)
 dtm_train = create_dtm(it_train, vectorizer)
 model_tfidf = TfIdf$new()
 dtm_tfidf = model_tfidf$fit_transform(dtm_train)
 ```
+
+
+```{r}
+makeDistanceMatrix <- function(datamatrix){
+  distanceMatrix <- t(datamatrix)
+  cosineDistMatrix <- cosSparse(distanceMatrix)
+  diag(cosineDistMatrix) <- 0
+  #for(row in 1:nrow(cosineDistMatrix)) {
+  #    for(col in 1:ncol(cosineDistMatrix)) {
+  #      if (abs(row-col) == 1){
+  #          cosineDistMatrix[row,col] <- 0
+  #      }
+  #    }
+  # }
+  return(cosineDistMatrix)
+}
+
+```
+
+```{r}
+makeDistanceMatrixPlus <- function(datamatrix){
+  distanceMatrix <- t(datamatrix)
+  cosineDistMatrix <- cosSparse(distanceMatrix)
+  diag(cosineDistMatrix) <- 0
+  for(row in 1:nrow(cosineDistMatrix)) {
+      for(col in 1:ncol(cosineDistMatrix)) {
+        if (abs(row-col) == 1){
+            cosineDistMatrix[row,col] <- 0
+        }
+      }
+   }
+  return(cosineDistMatrix)
+}
+
+```
+
+```{r}
+i <- c(1,3:8); j <- c(2,9,6:10); x <- 7 * (1:7)
+A <- sparseMatrix(i, j, x = x)
+(A)
+(as.matrix(A))
+makeDistanceMatrix(A)
+makeDistanceMatrixPlus(A)
+```
+
+```{r}
+makeDistanceMatrix(dtm_tfidf)
+```
+
+
+```{r}
+myMatrix <- matrix(1,nrow=10,ncol=10)
+print(myMatrix)
+makeDistanceMatrix(myMatrix)
+```
+

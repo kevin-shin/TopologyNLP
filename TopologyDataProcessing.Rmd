@@ -17,6 +17,7 @@ library(tokenizers)
 library(gutenbergr)
 library(janeaustenr)
 library(rapportools)
+library(textstem)
 ```
 ##Clean Data set
 
@@ -34,15 +35,38 @@ relevant_authors <- gutenberg_count %>% filter(n >= 10)
 ####David Hume Example
 ```{r}
 David_Hume <- gutenberg_filtered %>% filter(author == "Hume, David")
-Hume_Works <- gutenberg_download(David_Hume$gutenberg_id)
+Hume_Works <- gutenberg_download(David_Hume$gutenberg_id,strip=TRUE)
+```
+```{r}
+book_1257 <- gutenberg_download(1257,strip=TRUE)
+View(book_1257)
+book_1257_paragraph <- unnest_tokens(book_1257,input="text",output="Paragraph",token="paragraphs")
+View(book_1257_paragraph)
 ```
 
 ####Dictionary
 ```{r}
 dictionary <- Hume_Works %>% unnest_tokens(word, text)
-cleanDictionary <- transmute(dictionary,word = gsub('[0-9]+', '', str_replace_all(word,"(_|,+)","")))
+```
+
+```{r}
+#cleanDictionary <- transmute(dictionary,word = gsub('[0-9]+', '', str_replace_all(word,"[[:punct:] ]+","")))
+cleanDictionary <- transmute(dictionary,word = str_replace_all(word,"([[:punct:]]+|[0-9]+)",""))
 cleanDictionary <- cleanDictionary %>% filter(word != "") %>% filter(word != ".")
+```
+
+```{r}
 uniqueWords <- unique(cleanDictionary, incomparables = FALSE)
+uniqueLemma <- lemmatize_words(uniqueWords$word)
+uniqueLemma <- unique(uniqueLemma, incomparables = FALSE)
+
+View(uniqueWords)
+View(uniqueLemma)
+
+uniqueLemma <- data.frame("word" = uniqueLemma)
+uniqueLemma <- transmute(uniqueLemma, word = str_replace_all(word,"[0-9]+",""))
+uniqueLemma <- uniqueLemma %>% filter(word != "")
+
 ```
 
 ####A particular book
@@ -52,39 +76,41 @@ Book_4320 <- mutate(Book_4320, LineNumber=seq.int(nrow(Book_4320)))
 Book_4320 <- Book_4320 %>% filter(LineNumber >= 97)
 ```
 
+
 ```{r}
 book_words <- Book_4320 %>%
   unnest_tokens(word, text) %>%
   count(LineNumber, word, sort = TRUE)
 
-total_words <- book_words %>% 
-   group_by(LineNumber)
+book_words <- data.frame("LineNumber" = book_words$LineNumber, "word" = lemmatize_words(book_words$word), "n" = book_words$n)
 
 book_words <- book_words %>%
      bind_tf_idf(word, LineNumber, n)
 
-book_words_filtered <- book_words %>% filter(LineNumber >= 97)
+View(book_words)
+
 ```
 
 ###main function
 ```{r}
+#turns each line into a vector (toReturn <- 25,679 dimensions) which has a tf_idf score associated with the words that appear in the line
+
+#tested on small subsets of lines, should work I think. 
 testCase <- function(){
-  print(uniqueWords)
-  for (value in sort(unique(book_words_filtered$LineNumber))) {
-    lineSet <- book_words_filtered %>% filter(LineNumber == value)
-    toReturn <- merge(x=uniqueWords,y=lineSet,by="word",all=TRUE)
-    print(lineSet)
-    print(uniqueWords)
-    print(toReturn)
-    return(lineSet)
+  #for (value in sort(unique(book_words_filtered$LineNumber))) 
+  uniqueLemma4320 <- uniqueLemma
+  for (value in c(97:98))   {
+    lineSet <- book_words %>% filter(LineNumber == value)
+    #merged <- merge(x=uniqueLemma4320,y=lineSet,by="word",all=TRUE)
+    uniqueLemma4320[toString(value)] <- NA
+    for (word in lineSet$word){
+      uniqueLemma4320[word] = 3
+    }
   }
 }
 
 testCase()
-```
 
-```{r}
-vectorizeTable <- data.frame(LineNumber = sort(unique(book_words_filtered$LineNumber)))
 ```
 
 
