@@ -40,8 +40,8 @@ Hume_Works <- gutenberg_download(David_Hume$gutenberg_id)
 ####Dictionary
 ```{r}
 dictionary <- Hume_Works %>% unnest_tokens(word, text)
-cleanDictionary <- transmute(dictionary,word = gsub('[0-9]+', '', str_replace_all(word,"_","")))
-cleanDictionary <- cleanDictionary %>% filter(word != "")
+cleanDictionary <- transmute(dictionary,word = gsub('[0-9]+', '', str_replace_all(word,"(_|,+)","")))
+cleanDictionary <- cleanDictionary %>% filter(word != "") %>% filter(word != ".")
 uniqueWords <- unique(cleanDictionary, incomparables = FALSE)
 ```
 
@@ -66,26 +66,27 @@ book_words <- book_words %>%
 book_words_filtered <- book_words %>% filter(LineNumber >= 97)
 ```
 
+###main function
 ```{r}
-words_4320 <- Book_4320 %>%
-  unnest_tokens(word, text) %>%
-  count(gutenberg_id, word, sort = TRUE)
+testCase <- function(){
+  print(uniqueWords)
+  for (value in sort(unique(book_words_filtered$LineNumber))) {
+    lineSet <- book_words_filtered %>% filter(LineNumber == value)
+    toReturn <- merge(x=uniqueWords,y=lineSet,by="word",all=TRUE)
+    print(lineSet)
+    print(uniqueWords)
+    print(toReturn)
+    return(lineSet)
+  }
+}
+
+testCase()
 ```
 
-
 ```{r}
-book_words_MAIN <- book_words_filtered %>%  bind_tf_idf(word,gutenberg_id,n)
-transmute(book_words_filtered,gutenberg_id = gutenberg_id, word = str_replace_all(word, "_",""), tf_idf = tf_idf)
-book_words_filtered %>% group_by(gutenberg_id)
-
-total_words <- book_words %>% 
-  group_by(gutenberg_id) %>% 
-  summarize(total = sum(n))
-
-book_words <- left_join(book_words, total_words)
-
-
+vectorizeTable <- data.frame(LineNumber = sort(unique(book_words_filtered$LineNumber)))
 ```
+
 
 TO DO: 
 Each book (gutenberg_id) generates a point cloud. Repeat this process for multiple books, so that you get the relevant dictionary. Making the point clouds should take some time computationally but be rather simple. If in book, include as a column.

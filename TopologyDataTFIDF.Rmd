@@ -1,0 +1,47 @@
+---
+title: "NewApproach"
+author: "Kevin Shin"
+date: "5/4/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r cars}
+library(tidytext)
+library(dplyr)
+library(stringr)
+library(tokenizers)
+library(gutenbergr)
+library(janeaustenr)
+library(rapportools)
+library(textstem)
+library(text2vec)
+library(stopwords)
+```
+
+```{r}
+gutenberg_filtered <- gutenberg_metadata %>% filter(is.na(author)==FALSE) %>% filter(is.na(title)==FALSE) %>% filter(has_text == TRUE) %>%  filter(rights == "Public domain in the USA.") %>% filter(language == "en")
+book_1257 <- gutenberg_download(1257,strip=TRUE)
+book_1257_paragraph <- unnest_tokens(book_1257,input="text",output="Paragraph",token="paragraphs")
+View(book_1257_paragraph)
+```
+
+
+```{r}
+prep_fun = tolower
+tok_fun = word_tokenizer
+
+it_train = itoken(book_1257_paragraph$Paragraph, 
+             preprocessor = prep_fun, 
+             tokenizer = tok_fun, 
+             progressbar = FALSE)
+vocab = create_vocabulary(it_train, stopwords = stopwords(source = "smart"))
+vectorizer = vocab_vectorizer(vocab)
+dtm_train = create_dtm(it_train, vectorizer)
+model_tfidf = TfIdf$new()
+dtm_tfidf = model_tfidf$fit_transform(dtm_train)
+```
