@@ -23,34 +23,164 @@ library(stopwords)
 library(TDA)
 library(philentropy)
 library(lsa)
+library(quanteda)
 library(qlcMatrix)
+library(irlba)
+library(tm)
 ```
+
 ###Load in Data
 ```{r}
 gutenberg_filtered <- gutenberg_metadata %>% filter(is.na(author)==FALSE) %>% filter(is.na(title)==FALSE) %>% filter(has_text == TRUE) %>%  filter(rights == "Public domain in the USA.") %>% filter(language == "en")
-```
-
-```{r}
-gutenberg_filtered %>% filter(gutenberg_bookshelf == "Horror")
 ```
 
 ###Selecting categories
 ```{r}
 topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Horror")
 
-for (value in topics) {
+#returns vector of gutenbergIDs associated with that topic
+isolateIDs <- function(category){
   subsetBookshelf <- gutenberg_filtered %>% filter(gutenberg_bookshelf == value)
-  print(subsetBookshelf)
+  bookShelfIDs <- subsetBookshelf$gutenberg_id
+  return(bookShelfIDs)
+}
+
+```
+
+###Create DTM
+```{r}
+#returns Document Train Model, a sparse matrix where each column is a unique word in the text and the rows are each paragraph of the text
+#lineLimit is a precautionary measure--initial running of data shows that processing the full text takes way too much time, set a reasonable limit like 500
+computeDTM <- function(IDNum, lineLimit){
+  book <- gutenberg_download(IDNum, strip=TRUE)
+
+  book_paragraph <- unnest_tokens(book,input="text",output="Paragraph",token="paragraphs")
+  book_paragraph <- book_paragraph[1:lineLimit,]
+  prep_fun = tolower
+  tok_fun = word_tokenizer
+  
+  it_train = itoken(book_paragraph$Paragraph, 
+               preprocessor = prep_fun, 
+               tokenizer = tok_fun, 
+               progressbar = FALSE)
+  
+  vocab = create_vocabulary(it_train, stopwords = stopwords(source = "smart"))
+  vectorizer = vocab_vectorizer(vocab)
+  dtm_train = create_dtm(it_train, vectorizer)
+  model_tfidf = TfIdf$new()
+  dtm_tfidf = model_tfidf$fit_transform(dtm_train)
+  space <- lsa()
+  return(dtm_tfidf)
+}
+
+#computeDTM(1257,250)
+```
+
+```{r}
+computeQUANTEDA <- function(IDNum, lineLimit){
+  book <- gutenberg_download(IDNum, strip=TRUE)
+  book <- unnest_tokens(book,input="text",output="Paragraph",token="paragraphs")
+  book <- book[20:lineLimit,]
+  book <- VCorpus(VectorSource(book$Paragraph))
+  book <- tm_map(book, stripWhitespace)
+  book <- tm_map(book, content_transformer(tolower))
+  book <- tm_map(book, removeWords, stopwords("english"))
+  book <- tm_map(book, removePunctuation)
+  #book <- tm_map(book, lemmatize_strings)
+  #book <- tm_map(book, PlainTextDocument)
+  book <- tm_map(book, stemDocument, language = "english")  
+  dtm <- DocumentTermMatrix(book)
+  #dtm <- weightTfIdf(dtm)
+  dtmLSA <- lsa(dtm, dims=dimcalc_share() )$tk
+  #return(dtmLSA)
+  return(dtmLSA)
+  
+}
+
+print(computeQUANTEDA(1257,70))
+
+```
+
+
+
+###makeDistanceMatrix
+```{r}
+makeDistanceMatrix <- function(datamatrix){
+  distanceMatrix <- datamatrix
+  cosineDistMatrix <- cosSparse(distanceMatrix)
+  diag(cosineDistMatrix) <- 0
+  for(row in 2:nrow(cosineDistMatrix)) {
+      cosineDistMatrix[row, row-1] <- 0
+      cosineDistMatrix[row-1, row] <- 0 
+  }
+   for(row in 1:nrow(cosineDistMatrix)) {
+     for(col in 1:nrow(cosineDistMatrix)) {
+       cosineDistMatrix[row,col] = abs(cosineDistMatrix[row,col])*100000000000000000
+     }
+   }
+  return(as.matrix(cosineDistMatrix))
 }
 ```
 
 ```{r}
-book_1257 <- gutenberg_download(1257,strip=TRUE)
-book_1257_paragraph <- unnest_tokens(book_1257,input="text",output="Paragraph",token="paragraphs")
-View(book_1257_paragraph)
+DTM_1257 <- computeQUANTEDA(1257, 50)
+DM_1257 <- makeDistanceMatrix(DTM_1257)
+print(DM_1257)
+
 ```
 
 
+
+###Example
+```{r}
+
+DTM_1257 <- computeQUANTEDA(1257, 120)
+DM_1257 <- makeDistanceMatrix(DTM_1257)
+
+Diag <- ripsDiag(X = DM_1257,
+                 maxdimension = 1,
+                 maxscale = 50,
+                 dist = "arbitrary", 
+                 library = "Dionysus",
+                 printProgress = FALSE)
+
+print(summary.diagram(Diag[["diagram"]]))
+plot(Diag[["diagram"]])
+plot(Diag[["diagram"]], barcode=TRUE, main="Barcode from DTM_1257")
+
+```
+
+
+###ripsDiag
+
+```{r}
+Diag<- ripsDiag(X, maxdimension, maxscale, dist = "euclidean", 
+         library="GUDHI", printProgress = FALSE)
+
+```
+
+```{r}
+exampleDistanceMatrix <- makeDistanceMatrix(dtm_tfidf)
+```
+
+
+
+
+
+
+
+
+
+
+#TESTS TO FIGURE OUT WHATS GOING ON
+
+
+```{r}
+gutenberg_filtered %>% filter(gutenberg_bookshelf == "Horror")
+```
+
+
+###Convert into tf-idf vectors
 ```{r}
 prep_fun = tolower
 tok_fun = word_tokenizer
@@ -67,7 +197,7 @@ model_tfidf = TfIdf$new()
 dtm_tfidf = model_tfidf$fit_transform(dtm_train)
 ```
 
-
+###makeDistanceMatrix
 ```{r}
 makeDistanceMatrix <- function(datamatrix){
   distanceMatrix <- t(datamatrix)
@@ -84,6 +214,23 @@ makeDistanceMatrix <- function(datamatrix){
 }
 
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ```{r}
 makeDistanceMatrixPlus <- function(datamatrix){
@@ -102,6 +249,7 @@ makeDistanceMatrixPlus <- function(datamatrix){
 
 ```
 
+
 ```{r}
 i <- c(1,3:8); j <- c(2,9,6:10); x <- 7 * (1:7)
 A <- sparseMatrix(i, j, x = x)
@@ -111,9 +259,7 @@ makeDistanceMatrix(A)
 makeDistanceMatrixPlus(A)
 ```
 
-```{r}
-makeDistanceMatrix(dtm_tfidf)
-```
+
 
 
 ```{r}
