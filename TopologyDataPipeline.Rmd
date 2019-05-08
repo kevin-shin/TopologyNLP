@@ -50,9 +50,54 @@ isolateIDs <- function(category){
 
 ###Main function
 ```{r}
+
+topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Horror")
+
+mainDataFrame <- data.frame(matrix(ncol = 3, nrow = 0))
+columns <- c("bookID", "numHoles", "category")
+colnames(mainDataFrame) <- columns
+
+main <- function(numLines){
+  for (category in topics){
+    bookShieldIDs <- isolateIDs(category)
+    for (value in bookShieldIDs){
+      bookDTM <- computeDTM(value,numLines)
+      if (!is.null(bookDTM)){  
+        bookDistanceMatrix <- makeDistanceMatrix(bookDTM)
+        Diag <- ripsDiag(X = bookDistanceMatrix,
+                         maxdimension = 1,
+                         maxscale = 100,
+                         dist = "arbitrary", 
+                         library = "Dionysus",
+                         printProgress = FALSE)
+        numHoles <- summary.diagram(Diag[["diagram"]])$n
+        print(numHoles)
+        bookVector <- c(value, numHoles, category)
+        rbind(mainDataFrame,bookVector)
+      }
+      else {
+        bookVector <- c(value, 0, category)
+        rbind(mainDataFrame,bookVector)
+        print("0 here")
+      }
+    }
+  }
+  return(mainDataFrame)
+}
+```
+
+```{r}
+main(50)
+
+```
+
+
+
+###pipeline
+```{r}
 pipeline <- function(category, numLines){
   bookShieldIDs <- isolateIDs(category)
-  mainDataFrame <- data.frame(bookShieldIDs, numHoles = 0)
+  mainDataFrame <- data.frame(bookShieldIDs, numHoles = 0, bookshelf = category)
   
  for (value in bookShieldIDs){
    bookDTM <- computeDTM(value,numLines)
@@ -85,7 +130,7 @@ computeDTM <- function(IDNum, lineLimit){
   book <- transmute(book, gutenberg_id = gutenberg_id, text = iconv(book$text,"UTF-8","UTF-8",sub=''))
   book <- unnest_tokens(book,input="text",output="Paragraph",token="paragraphs")
   book <- book[50:(50+lineLimit),]
-  book <- VCorpus(VectorSource(stri_enc_toutf8(book$Paragraph,is_unknown_8bit = TRUE,validate = FALSE)))
+  book <- VCorpus(VectorSource(book$Paragraph))
   book <- tm_map(book, stripWhitespace)
   book <- tm_map(book, content_transformer(tolower))
   book <- tm_map(book, removeWords, stopwords("english"))
