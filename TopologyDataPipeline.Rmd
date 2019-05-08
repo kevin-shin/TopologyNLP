@@ -48,10 +48,7 @@ isolateIDs <- function(category){
 }
 ```
 
-```{r}
-isolateIDs("Humor")
-```
-
+###Main function
 ```{r}
 pipeline <- function(category, numLines){
   bookShieldIDs <- isolateIDs(category)
@@ -78,14 +75,10 @@ pipeline <- function(category, numLines){
  }
   return(mainDataFrame)
 }
-
-View(pipeline("Humor", 30))
 ```
 
 
 ###Create DTM
-
-
 ```{r}
 computeDTM <- function(IDNum, lineLimit){
   book <- gutenberg_download(IDNum, strip=TRUE)
@@ -109,20 +102,7 @@ computeDTM <- function(IDNum, lineLimit){
   }
 }
 
-computeDTM(6995,30)
 ```
-
-```{r}
-DTM_6995 <- gutenberg_download(6995,strip=TRUE)
-DTM_6995_STRI <- transmute(DTM_6995, gutenberg_id = gutenberg_id, text = stri_enc_toutf8(DTM_6995$text, is_unknown_8bit = TRUE, validate = TRUE))
-
-DTM_6995_UTF <- transmute(DTM_6995, gutenberg_id = gutenberg_id, text = iconv(DTM_6995$text,"UTF-8","UTF-8",sub=''))
-
-#book <- unnest_tokens(DTM_6995_STRI,input="text",output="Paragraph",token="paragraphs")
-book2 <- unnest_tokens(DTM_6995_UTF,input="text",output="Paragraph",token="paragraphs")
-
-```
-
 
 ###makeDistanceMatrix
 ```{r}
@@ -143,6 +123,13 @@ makeDistanceMatrix <- function(datamatrix){
 }
 ```
 
+###Examples and Calls
+
+```{r}
+humor <- pipeline("Humor", 30)
+View(humor)
+```
+
 ```{r}
 ##Adventure, Three Musketeers
 DTM_1257 <- computeDTM(1257, 50)
@@ -156,8 +143,6 @@ print(DM_2233)
 ```
 
 
-
-###Example
 ```{r}
 DTM_1257 <- computeDTM(1257, 120)
 DM_1257 <- makeDistanceMatrix(DTM_1257)
@@ -174,6 +159,19 @@ plot(Diag1257[["diagram"]])
 plot(Diag1257[["diagram"]], barcode=TRUE, main="Barcode from DTM_1257")
 
 ```
+
+
+```{r}
+DTM_6995 <- gutenberg_download(6995,strip=TRUE)
+DTM_6995_STRI <- transmute(DTM_6995, gutenberg_id = gutenberg_id, text = stri_enc_toutf8(DTM_6995$text, is_unknown_8bit = TRUE, validate = TRUE))
+
+DTM_6995_UTF <- transmute(DTM_6995, gutenberg_id = gutenberg_id, text = iconv(DTM_6995$text,"UTF-8","UTF-8",sub=''))
+
+#book <- unnest_tokens(DTM_6995_STRI,input="text",output="Paragraph",token="paragraphs")
+book2 <- unnest_tokens(DTM_6995_UTF,input="text",output="Paragraph",token="paragraphs")
+
+```
+
 
 ```{r}
 DTM_2233 <- computeDTM(2233, 120)
