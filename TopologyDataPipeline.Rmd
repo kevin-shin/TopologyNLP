@@ -42,9 +42,8 @@ topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Refe
 
 #returns vector of gutenbergIDs associated with that topic
 isolateIDs <- function(category){
-  subsetBookshelf <- gutenberg_filtered %>% filter(gutenberg_bookshelf == category)
-  bookShelfIDs <- subsetBookshelf$gutenberg_id
-  return(bookShelfIDs)
+  subsetBookshelf <- gutenberg_filtered[grep(category, gutenberg_filtered$gutenberg_bookshelf),]
+  return(subsetBookshelf$gutenberg_id)
 }
 ```
 
@@ -71,27 +70,25 @@ main <- function(numLines){
                          library = "Dionysus",
                          printProgress = FALSE)
         numHoles <- summary.diagram(Diag[["diagram"]])$n
+        
         print(numHoles)
-        bookVector <- c(value, numHoles, category)
-        rbind(mainDataFrame,bookVector)
+        
+        tempDF <- data.frame(value, numHoles, category)
+        names(tempDF) <- c("bookID", "numHoles", "category")
+        
+        mainDataFrame <- rbind(mainDataFrame,tempDF)
       }
       else {
-        bookVector <- c(value, 0, category)
-        rbind(mainDataFrame,bookVector)
         print("0 here")
+        tempDF <- data.frame(value, 0, category)
+        names(tempDF) <- c("bookID", "numHoles", "category")
+        mainDataFrame <- rbind(mainDataFrame,tempDF)
       }
     }
   }
   return(mainDataFrame)
 }
 ```
-
-```{r}
-main(50)
-
-```
-
-
 
 ###pipeline
 ```{r}
@@ -171,8 +168,7 @@ makeDistanceMatrix <- function(datamatrix){
 ###Examples and Calls
 
 ```{r}
-humor <- pipeline("Humor", 30)
-View(humor)
+main(200)
 ```
 
 ```{r}
