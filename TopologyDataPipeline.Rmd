@@ -50,11 +50,13 @@ isolateIDs <- function(category){
 ###Main function
 ```{r}
 
-topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Horror")
+topics <- c("Horror")
+#topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Horror")
 
-mainDataFrame <- data.frame(matrix(ncol = 3, nrow = 0))
-columns <- c("bookID", "numHoles", "category")
+mainDataFrame <- data.frame(matrix(ncol = 8, nrow = 0))
+columns <- c("bookID", "numHoles", "category", "averageBirthLocation", "birthLocationSD", "averageDeathLocation", "deathLocationSD", "avgLengthofLife")
 colnames(mainDataFrame) <- columns
+
 
 main <- function(numLines){
   for (category in topics){
@@ -68,26 +70,27 @@ main <- function(numLines){
                          maxscale = 100,
                          dist = "arbitrary", 
                          library = "Dionysus",
-                         printProgress = FALSE)
+                         printProgress = FALSE, 
+                         location=TRUE)
+
         numHoles <- summary.diagram(Diag[["diagram"]])$n
-        
-        print(numHoles)
-        
-        tempDF <- data.frame(value, numHoles, category)
-        names(tempDF) <- c("bookID", "numHoles", "category")
-        
+        tempDF <- data.frame(value, numHoles, category, mean(Diag$birthLocation), sd(Diag$birthLocation), mean(Diag$deathLocation), sd(Diag$deathLocation), mean(Diag$deathLocation- Diag$birthLocation))
+        names(tempDF) <- c("bookID", "numHoles", "category", "averageBirthLocation", "birthLocationSD", "averageDeathLocation", "deathLocationSD", "avgLengthofLife")
         mainDataFrame <- rbind(mainDataFrame,tempDF)
+        
       }
       else {
         print("0 here")
-        tempDF <- data.frame(value, 0, category)
-        names(tempDF) <- c("bookID", "numHoles", "category")
+        tempDF <- data.frame(value, 0, category, 0, 0, 0, 0, 0)
+        names(tempDF) <- c("bookID", "numHoles", "category", "averageBirthLocation", "birthLocationSD", "averageDeathLocation", "deathLocationSD", "avgLengthofLife")
         mainDataFrame <- rbind(mainDataFrame,tempDF)
       }
     }
   }
   return(mainDataFrame)
 }
+
+main(20)
 ```
 
 ###pipeline
@@ -117,6 +120,8 @@ pipeline <- function(category, numLines){
  }
   return(mainDataFrame)
 }
+
+
 ```
 
 
@@ -127,6 +132,7 @@ computeDTM <- function(IDNum, lineLimit){
   book <- transmute(book, gutenberg_id = gutenberg_id, text = iconv(book$text,"UTF-8","UTF-8",sub=''))
   book <- unnest_tokens(book,input="text",output="Paragraph",token="paragraphs")
   book <- book[50:(50+lineLimit),]
+  book <- book %>% filter(!is.na(book$Paragraph))
   book <- VCorpus(VectorSource(book$Paragraph))
   book <- tm_map(book, stripWhitespace)
   book <- tm_map(book, content_transformer(tolower))
@@ -135,7 +141,7 @@ computeDTM <- function(IDNum, lineLimit){
   book <- tm_map(book, stemDocument, language = "english")  
   dtm <- DocumentTermMatrix(book)
   dtm <- weightTfIdf(dtm)
-  #print(dim(dtm)[2])
+
   if ((dim(dtm)[2]) != 0){
     dtmLSA <- lsa(dtm, dims=dimcalc_share())$tk
     return(dtmLSA)
@@ -168,7 +174,33 @@ makeDistanceMatrix <- function(datamatrix){
 ###Examples and Calls
 
 ```{r}
-main(200)
+main(20)
+```
+
+
+
+```{r}
+DTM_1257 <- computeDTM(1257, 120)
+DM_1257 <- makeDistanceMatrix(DTM_1257)
+
+Diag1257 <- ripsDiag(X = DM_1257,
+                 maxdimension = 1,
+                 maxscale = 50,
+                 dist = "arbitrary", 
+                 library = "Dionysus",
+                 printProgress = FALSE, 
+                 location=TRUE)
+
+print(summary.diagram(Diag1257[["diagram"]]))
+print("Hit here")
+print(mean(Diag1257$birthLocation))
+print(sd(Diag1257$birthLocation))
+print(mean(Diag1257$deathLocation))
+print(sd(Diag1257$deathLocation))
+print(mean(Diag1257$birthLocation-Diag1257$deathLocation))
+plot(Diag1257[["diagram"]])
+plot(Diag1257[["diagram"]], barcode=TRUE, main="Barcode from DTM_1257")
+
 ```
 
 ```{r}
@@ -183,23 +215,6 @@ DM_2233 <- makeDistanceMatrix(DTM_2233)
 print(DM_2233)
 ```
 
-
-```{r}
-DTM_1257 <- computeDTM(1257, 120)
-DM_1257 <- makeDistanceMatrix(DTM_1257)
-
-Diag1257 <- ripsDiag(X = DM_1257,
-                 maxdimension = 1,
-                 maxscale = 50,
-                 dist = "arbitrary", 
-                 library = "Dionysus",
-                 printProgress = FALSE)
-
-print(summary.diagram(Diag1257[["diagram"]]))
-plot(Diag1257[["diagram"]])
-plot(Diag1257[["diagram"]], barcode=TRUE, main="Barcode from DTM_1257")
-
-```
 
 
 ```{r}
@@ -249,4 +264,26 @@ plot(Diag2233[["diagram"]])
 plot(Diag2233[["diagram"]], barcode=TRUE, main="Barcode from DTM_30324")
 
 
+```
+
+```{r}
+lineLimit <- 50
+
+for (category in topics) {
+    bookShieldIDs <- isolateIDs(category)
+    for (value in bookShieldIDs) {
+      print("NEW BOOK")  
+      print(value)
+        book <- gutenberg_download(value, strip=TRUE)
+        book <- transmute(book, gutenberg_id = gutenberg_id, text = iconv(book$text,"UTF-8","UTF-8",sub=''))
+        book <- unnest_tokens(book,input="text",output="Paragraph",token="paragraphs")
+        print(nrow(book))
+        book <- book[20:(20+lineLimit),]
+        print(book)
+        book <- book %>% filter(!is.na(book$Paragraph))
+        print("I'm filtered")
+        print(book)
+        print(nrow(book))
+    }
+}
 ```
