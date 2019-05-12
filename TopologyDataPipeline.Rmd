@@ -47,83 +47,24 @@ isolateIDs <- function(category){
 }
 ```
 
-###Main function
 ```{r}
+minVal <- 10000000000000
+topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Horror")
+limit <- 41
 
-topics <- c("Horror")
-#topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Horror")
+children <- isolateIDs("Children's Fiction")
+humor <- isolateIDs("Humor")
+science <- isolateIDs("Science Fiction")
 
-mainDataFrame <- data.frame(matrix(ncol = 8, nrow = 0))
-columns <- c("bookID", "numHoles", "category", "averageBirthLocation", "birthLocationSD", "averageDeathLocation", "deathLocationSD", "avgLengthofLife")
-colnames(mainDataFrame) <- columns
-
-
-main <- function(numLines){
-  for (category in topics){
-    bookShieldIDs <- isolateIDs(category)
-    for (value in bookShieldIDs){
-      bookDTM <- computeDTM(value,numLines)
-      if (!is.null(bookDTM)){  
-        bookDistanceMatrix <- makeDistanceMatrix(bookDTM)
-        Diag <- ripsDiag(X = bookDistanceMatrix,
-                         maxdimension = 1,
-                         maxscale = 100,
-                         dist = "arbitrary", 
-                         library = "Dionysus",
-                         printProgress = FALSE, 
-                         location=TRUE)
-
-        numHoles <- summary.diagram(Diag[["diagram"]])$n
-        tempDF <- data.frame(value, numHoles, category, mean(Diag$birthLocation), sd(Diag$birthLocation), mean(Diag$deathLocation), sd(Diag$deathLocation), mean(Diag$deathLocation- Diag$birthLocation))
-        names(tempDF) <- c("bookID", "numHoles", "category", "averageBirthLocation", "birthLocationSD", "averageDeathLocation", "deathLocationSD", "avgLengthofLife")
-        mainDataFrame <- rbind(mainDataFrame,tempDF)
-        
-      }
-      else {
-        print("0 here")
-        tempDF <- data.frame(value, 0, category, 0, 0, 0, 0, 0)
-        names(tempDF) <- c("bookID", "numHoles", "category", "averageBirthLocation", "birthLocationSD", "averageDeathLocation", "deathLocationSD", "avgLengthofLife")
-        mainDataFrame <- rbind(mainDataFrame,tempDF)
-      }
-    }
-  }
-  return(mainDataFrame)
-}
-
-main(20)
-```
-
-###pipeline
-```{r}
-pipeline <- function(category, numLines){
-  bookShieldIDs <- isolateIDs(category)
-  mainDataFrame <- data.frame(bookShieldIDs, numHoles = 0, bookshelf = category)
-  
- for (value in bookShieldIDs){
-   bookDTM <- computeDTM(value,numLines)
-   if (!is.null(bookDTM)){  
-   bookDistanceMatrix <- makeDistanceMatrix(bookDTM)
-     Diag <- ripsDiag(X = bookDistanceMatrix,
-                   maxdimension = 1,
-                   maxscale = 100,
-                   dist = "arbitrary", 
-                   library = "Dionysus",
-                   printProgress = FALSE)
-     numHoles <- summary.diagram(Diag[["diagram"]])$n
-     print(numHoles)
-     mainDataFrame$numHoles[mainDataFrame$bookShieldIDs == value] <- numHoles
-   }
-   else {
-     mainDataFrame$numHoles[mainDataFrame$bookShieldIDs == value] <- 0
-     print("0 here")
-   }
- }
-  return(mainDataFrame)
+for (book in children){
+  print(book)
+  book <- gutenberg_download(book, strip=TRUE)
+  View(book)
+  book <- transmute(book, gutenberg_id = gutenberg_id, text = iconv(book$text,"UTF-8","UTF-8",sub=''))
 }
 
 
 ```
-
 
 ###Create DTM
 ```{r}
@@ -171,10 +112,145 @@ makeDistanceMatrix <- function(datamatrix){
 }
 ```
 
+###Approach 2
+```{r}
+collection <- c(7334, 7346, 770, 7493, 7862)
+
+clusteringPD <- function(numLines){
+  similarityMatrix <- matrix(ncol = length(collection), nrow = length(collection))
+  diag(similarityMatrix) <- 0
+  for (bookIndexHoriz in 1:length(collection)){
+    for (bookIndexVert in 1:length(collection)){
+      if (bookIndexVert > bookIndexHoriz){
+        bookDTM <- computeDTM(collection[bookIndexVert],numLines)
+        otherBookDTM <- computeDTM(collection[bookIndexHoriz],numLines)
+        if (!is.null(bookDTM) && !is.na(otherBookDTM)){  
+          bookDistanceMatrix <- makeDistanceMatrix(bookDTM)
+          otherBookDistanceMatrix <- makeDistanceMatrix(otherBookDTM)
+          Diag <- ripsDiag(X = bookDistanceMatrix,
+                           maxdimension = 1,
+                           maxscale = 100,
+                           dist = "arbitrary", 
+                           library = "Dionysus",
+                           printProgress = FALSE, 
+                           location=TRUE)
+          DiagOther <- ripsDiag(X = otherBookDistanceMatrix,
+                           maxdimension = 1,
+                           maxscale = 100,
+                           dist = "arbitrary", 
+                           library = "Dionysus",
+                           printProgress = FALSE, 
+                           location=TRUE)
+          bottleneckDist <- bottleneck(Diag[["diagram"]], DiagOther[["diagram"]], dimension = 1)
+          similarityMatrix[bookIndexHoriz,bookIndexVert] <- bottleneckDist
+        }
+      }
+      else {
+        similarityMatrix[bookIndexHoriz,bookIndexVert] <- 0
+      }
+    }
+  }
+  mainMatrix <- similarityMatrix + t(similarityMatrix)
+  toReturn <- as.data.frame(mainMatrix)
+  colnames(toReturn) <- collection
+  rownames(toReturn) <- collection
+  return(toReturn)
+  
+}
+```
+
+```{r}
+similarityTable <- clusteringPD(50)
+pamx <- pam(similarityTable, 1)
+```
+
+###Main function
+```{r}
+
+topics <- c("Humor", "Science Fiction")
+#topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Horror")
+
+mainDataFrame <- data.frame(matrix(ncol = 8, nrow = 0))
+columns <- c("bookID", "numHoles", "category", "averageBirthLocation", "birthLocationSD", "averageDeathLocation", "deathLocationSD", "avgLengthofLife")
+colnames(mainDataFrame) <- columns
+
+main <- function(numLines){
+  for (category in topics){
+    bookShieldIDs <- isolateIDs(category)
+    for (value in bookShieldIDs){
+      bookDTM <- computeDTM(value,numLines)
+      print(value)
+      if (!is.null(bookDTM)){  
+        bookDistanceMatrix <- makeDistanceMatrix(bookDTM)
+        Diag <- ripsDiag(X = bookDistanceMatrix,
+                         maxdimension = 1,
+                         maxscale = 100,
+                         dist = "arbitrary", 
+                         library = "Dionysus",
+                         printProgress = FALSE, 
+                         location=TRUE)
+
+        numHoles <- summary.diagram(Diag[["diagram"]])$n
+        print(numHoles)
+        tempDF <- data.frame(value, numHoles, category, mean(Diag$birthLocation), sd(Diag$birthLocation), mean(Diag$deathLocation), sd(Diag$deathLocation), mean(Diag$deathLocation- Diag$birthLocation))
+        names(tempDF) <- c("bookID", "numHoles", "category", "averageBirthLocation", "birthLocationSD", "averageDeathLocation", "deathLocationSD", "avgLengthofLife")
+        mainDataFrame <- rbind(mainDataFrame,tempDF)
+        
+      }
+      else {
+        print("0 here")
+        tempDF <- data.frame(value, 0, category, 0, 0, 0, 0, 0)
+        names(tempDF) <- c("bookID", "numHoles", "category", "averageBirthLocation", "birthLocationSD", "averageDeathLocation", "deathLocationSD", "avgLengthofLife")
+        mainDataFrame <- rbind(mainDataFrame,tempDF)
+      }
+    }
+  }
+  return(mainDataFrame)
+}
+
+```
+
+
+```{r}
+#topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Horror")
+problematicMirrors <- function(category){
+  for (category in topics){
+    bookShieldIDs <- isolateIDs(category)
+    for (value in bookShieldIDs){
+        print(value)
+        downloadedBook <- gutenberg_download(value)
+    }
+  }
+}
+
+```
+
+```{r}
+topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Horror")
+Statistics <- c("numHoles","averageBirthLocation", "averageDeathLocation","avgLengthofLife")
+
+compareStatistics <- function(dataFrame, statistic){
+    df <- data.frame(matrix(0, ncol = 6, nrow = 6))
+    colnames(df) <- topics
+    rownames(df) <- topics
+    for (row in rownames(df)){
+      for (col in colnames(df)){
+        genreRowTable <- dataFrame %>% filter(category == row)
+        genreColTable <- dataFrame %>% filter(category == col)
+        significanceLevel <- t.test(mean(genreRowTable$statistic), mean(genreColTable$statistic))$p.value
+        df[row,col] <- significanceLevel
+      }
+    }
+}
+
+```
+
+
 ###Examples and Calls
 
 ```{r}
-main(20)
+mainDataFrame <- main(30)
+View(mainDataFrame)
 ```
 
 
@@ -268,7 +344,6 @@ plot(Diag2233[["diagram"]], barcode=TRUE, main="Barcode from DTM_30324")
 
 ```{r}
 lineLimit <- 50
-
 for (category in topics) {
     bookShieldIDs <- isolateIDs(category)
     for (value in bookShieldIDs) {
