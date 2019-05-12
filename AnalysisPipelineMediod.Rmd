@@ -8,6 +8,7 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+tidytext dplyr stringr tokenizers gutenbergr rapportools textstem text2vec stopwords TDA philentropy lsa quanteda qlcMatrix irlba tm stringi utf8 cluster knitr
 
 ```{r cars}
 library(tidytext)
