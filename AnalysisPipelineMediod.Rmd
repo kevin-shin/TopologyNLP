@@ -43,7 +43,14 @@ topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Biog
 isolateIDs <- function(category){
   subsetBookshelf <- gutenberg_filtered[grep(category, gutenberg_filtered$gutenberg_bookshelf),]
   #On May 11, gutenberg_id 2149 was not available on any mirror for download on gutenbergr
-  return(subsetBookshelf$gutenberg_id)
+  subsetBookshelf <- subsetBookshelf$gutenberg_id[subsetBookshelf$gutenberg_id != 24450]
+  subsetBookshelf <- subsetBookshelf[subsetBookshelf != 19513]
+  subsetBookshelf <- subsetBookshelf[subsetBookshelf != 19515]
+  subsetBookshelf <- subsetBookshelf[subsetBookshelf != 19526]
+  subsetBookshelf <- subsetBookshelf[subsetBookshelf != 4290]
+  subsetBookshelf <- subsetBookshelf[1:100]
+  subsetBookshelf <- subsetBookshelf[!is.na(subsetBookshelf)]
+  return(subsetBookshelf)
 }
 ```
 
@@ -57,19 +64,17 @@ adventure <- isolateIDs("Adventure")
 biographies <- isolateIDs("Biographies")
 
 bookIndexing <- c(length(children), length(humor), length(scifi), length(adventure), length(biographies))
-print(min(bookIndexing))
-#returns 40
+#print(min(bookIndexing))
+#returns 47
 
-children <- sample(children, 5, replace=FALSE, prob=NULL)
-humor <- sample(humor, 5, replace=FALSE, prob=NULL)
-scifi <- sample(scifi, 5, replace=FALSE, prob=NULL)
-adventure <- sample(adventure, 5, replace=FALSE, prob=NULL)
-biographies <- sample(biographies, 5, replace=FALSE, prob=NULL)
+children <- sample(children, 45, replace=FALSE, prob=NULL)
+humor <- sample(humor, 45, replace=FALSE, prob=NULL)
+scifi <- sample(scifi, 45, replace=FALSE, prob=NULL)
+adventure <- sample(adventure, 45, replace=FALSE, prob=NULL)
+biographies <- sample(biographies, 45, replace=FALSE, prob=NULL)
 
 bookList <- c(children, humor, scifi, adventure, biographies)
-print(bookList)
-
-
+bookList <-
 ```
 
 ###Approach 2
@@ -101,8 +106,8 @@ clusteringPD <- function(numLines){
                            library = "Dionysus",
                            printProgress = FALSE, 
                            location=TRUE)
-          wassersteinDist <- wasserstein(Diag[["diagram"]], DiagOther[["diagram"]], p = 0.5, dimension = 1)
-          similarityMatrix[bookIndexHoriz,bookIndexVert] <- wasserSteinDist
+          wassersteinDist <- wasserstein(Diag[["diagram"]], DiagOther[["diagram"]], p = 2, dimension = 1)
+          similarityMatrix[bookIndexHoriz,bookIndexVert] <- wassersteinDist
         }
       }
       else {
