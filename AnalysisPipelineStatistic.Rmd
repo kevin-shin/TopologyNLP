@@ -1,5 +1,5 @@
 ---
-title: "TopologyDataPipeline"
+title: "AnalysisPipelineStatistic"
 author: "Kevin Shin"
 date: "5/4/2019"
 output: html_document
@@ -44,7 +44,11 @@ topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Refe
 isolateIDs <- function(category){
   subsetBookshelf <- gutenberg_filtered[grep(category, gutenberg_filtered$gutenberg_bookshelf),]
   #On May 11, gutenberg_id 2149 was not available on any mirror for download on gutenbergr
-  return(subsetBookshelf$gutenberg_id)
+  subsetBookshelf <- subsetBookshelf$gutenberg_id[subsetBookshelf$gutenberg_id != 24450]
+  subsetBookshelf <- subsetBookshelf[subsetBookshelf != 19513]
+  subsetBookshelf <- subsetBookshelf[subsetBookshelf != 19515]
+  subsetBookshelf <- subsetBookshelf[subsetBookshelf != 19526]
+  
 }
 ```
 
@@ -59,34 +63,17 @@ biographies <- isolateIDs("Biographies")
 
 bookIndexing <- c(length(children), length(humor), length(scifi), length(adventure), length(biographies))
 print(min(bookIndexing))
-#returns 40
+#returns 47
 
-children <- sample(children, 40, replace=FALSE, prob=NULL)
-humor <- sample(humor, 40, replace=FALSE, prob=NULL)
-scifi <- sample(scifi, 40, replace=FALSE, prob=NULL)
-adventure <- sample(adventure, 40, replace=FALSE, prob=NULL)
-biographies <- sample(biographies, 40, replace=FALSE, prob=NULL)
+children <- sample(children, 47, replace=FALSE, prob=NULL)
+humor <- sample(humor, 47, replace=FALSE, prob=NULL)
+scifi <- sample(scifi, 47, replace=FALSE, prob=NULL)
+adventure <- sample(adventure, 47, replace=FALSE, prob=NULL)
+biographies <- sample(biographies, 47, replace=FALSE, prob=NULL)
 
 bookList <- c(children, humor, scifi, adventure, biographies)
-print(bookList)
-
-for (bookID in bookList){
-  print(bookID)
-  book <- gutenberg_download(bookID, strip=TRUE)
-  book <- transmute(book, gutenberg_id = gutenberg_id, text = iconv(book$text,"UTF-8","UTF-8",sub=''))
-}
 ```
 
-```{r}
-for (book in children){
-  print(book)
-  book <- gutenberg_download(book, strip=TRUE)
-  View(book)
-  book <- transmute(book, gutenberg_id = gutenberg_id, text = iconv(book$text,"UTF-8","UTF-8",sub=''))
-}
-
-
-```
 
 ###Create DTM
 ```{r}
@@ -105,7 +92,7 @@ computeDTM <- function(IDNum, lineLimit){
   dtm <- DocumentTermMatrix(book)
   dtm <- weightTfIdf(dtm)
 
-  if ((dim(dtm)[2]) != 0){
+  if ((dim(dtm)[2]) > 1){
     dtmLSA <- lsa(dtm, dims=dimcalc_share())$tk
     return(dtmLSA)
   } else {
@@ -134,63 +121,11 @@ makeDistanceMatrix <- function(datamatrix){
 }
 ```
 
-###Approach 2
-```{r}
-collection <- c(7334, 7346, 770, 7493, 7862)
-
-clusteringPD <- function(numLines){
-  similarityMatrix <- matrix(ncol = length(collection), nrow = length(collection))
-  diag(similarityMatrix) <- 0
-  for (bookIndexHoriz in 1:length(collection)){
-    for (bookIndexVert in 1:length(collection)){
-      if (bookIndexVert > bookIndexHoriz){
-        bookDTM <- computeDTM(collection[bookIndexVert],numLines)
-        otherBookDTM <- computeDTM(collection[bookIndexHoriz],numLines)
-        if (!is.null(bookDTM) && !is.na(otherBookDTM)){  
-          bookDistanceMatrix <- makeDistanceMatrix(bookDTM)
-          otherBookDistanceMatrix <- makeDistanceMatrix(otherBookDTM)
-          Diag <- ripsDiag(X = bookDistanceMatrix,
-                           maxdimension = 1,
-                           maxscale = 100,
-                           dist = "arbitrary", 
-                           library = "Dionysus",
-                           printProgress = FALSE, 
-                           location=TRUE)
-          DiagOther <- ripsDiag(X = otherBookDistanceMatrix,
-                           maxdimension = 1,
-                           maxscale = 100,
-                           dist = "arbitrary", 
-                           library = "Dionysus",
-                           printProgress = FALSE, 
-                           location=TRUE)
-          bottleneckDist <- bottleneck(Diag[["diagram"]], DiagOther[["diagram"]], dimension = 1)
-          similarityMatrix[bookIndexHoriz,bookIndexVert] <- bottleneckDist
-        }
-      }
-      else {
-        similarityMatrix[bookIndexHoriz,bookIndexVert] <- 0
-      }
-    }
-  }
-  mainMatrix <- similarityMatrix + t(similarityMatrix)
-  toReturn <- as.data.frame(mainMatrix)
-  colnames(toReturn) <- collection
-  rownames(toReturn) <- collection
-  return(toReturn)
-  
-}
-```
-
-```{r}
-similarityTable <- clusteringPD(50)
-pamx <- pam(similarityTable, 1)
-```
-
 ###Main function
 ```{r}
 
 topics <- c("Humor", "Science Fiction")
-#topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Horror")
+#topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Biographies")
 
 mainDataFrame <- data.frame(matrix(ncol = 8, nrow = 0))
 columns <- c("bookID", "numHoles", "category", "averageBirthLocation", "birthLocationSD", "averageDeathLocation", "deathLocationSD", "avgLengthofLife")
@@ -232,23 +167,8 @@ main <- function(numLines){
 
 ```
 
-
 ```{r}
 #topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Horror")
-problematicMirrors <- function(category){
-  for (category in topics){
-    bookShieldIDs <- isolateIDs(category)
-    for (value in bookShieldIDs){
-        print(value)
-        downloadedBook <- gutenberg_download(value)
-    }
-  }
-}
-
-```
-
-```{r}
-topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Horror")
 Statistics <- c("numHoles","averageBirthLocation", "averageDeathLocation","avgLengthofLife")
 
 compareStatistics <- function(dataFrame, statistic){
@@ -268,10 +188,37 @@ compareStatistics <- function(dataFrame, statistic){
 ```
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ###Examples and Calls
 
 ```{r}
-mainDataFrame <- main(30)
+mainDataFrame <- main(50)
 View(mainDataFrame)
 ```
 
@@ -383,4 +330,28 @@ for (category in topics) {
         print(nrow(book))
     }
 }
+```
+
+
+```{r}
+for (book in children){
+  print(book)
+  book <- gutenberg_download(book, strip=TRUE)
+  View(book)
+  book <- transmute(book, gutenberg_id = gutenberg_id, text = iconv(book$text,"UTF-8","UTF-8",sub=''))
+}
+
+
+```
+
+```{r}
+#topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Horror")
+
+for (bookID in bookList){
+  print(bookID)
+  book <- gutenberg_download(bookID, strip=TRUE)
+  book <- transmute(book, gutenberg_id = gutenberg_id, text = iconv(book$text,"UTF-8","UTF-8",sub=''))
+}
+
+
 ```
