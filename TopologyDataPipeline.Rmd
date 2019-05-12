@@ -38,24 +38,46 @@ gutenberg_filtered <- gutenberg_metadata %>% filter(is.na(author)==FALSE) %>% fi
 
 ###Selecting categories
 ```{r}
-topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Horror")
+topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Biographies")
 
 #returns vector of gutenbergIDs associated with that topic
 isolateIDs <- function(category){
   subsetBookshelf <- gutenberg_filtered[grep(category, gutenberg_filtered$gutenberg_bookshelf),]
+  #On May 11, gutenberg_id 2149 was not available on any mirror for download on gutenbergr
   return(subsetBookshelf$gutenberg_id)
 }
 ```
 
 ```{r}
-minVal <- 10000000000000
-topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Horror")
-limit <- 41
+set.seed(471)
 
 children <- isolateIDs("Children's Fiction")
 humor <- isolateIDs("Humor")
-science <- isolateIDs("Science Fiction")
+scifi <- isolateIDs("Science Fiction")
+adventure <- isolateIDs("Adventure")
+biographies <- isolateIDs("Biographies")
 
+bookIndexing <- c(length(children), length(humor), length(scifi), length(adventure), length(biographies))
+print(min(bookIndexing))
+#returns 40
+
+children <- sample(children, 40, replace=FALSE, prob=NULL)
+humor <- sample(humor, 40, replace=FALSE, prob=NULL)
+scifi <- sample(scifi, 40, replace=FALSE, prob=NULL)
+adventure <- sample(adventure, 40, replace=FALSE, prob=NULL)
+biographies <- sample(biographies, 40, replace=FALSE, prob=NULL)
+
+bookList <- c(children, humor, scifi, adventure, biographies)
+print(bookList)
+
+for (bookID in bookList){
+  print(bookID)
+  book <- gutenberg_download(bookID, strip=TRUE)
+  book <- transmute(book, gutenberg_id = gutenberg_id, text = iconv(book$text,"UTF-8","UTF-8",sub=''))
+}
+```
+
+```{r}
 for (book in children){
   print(book)
   book <- gutenberg_download(book, strip=TRUE)
