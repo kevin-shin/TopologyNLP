@@ -131,47 +131,6 @@ makeDistanceMatrix <- function(datamatrix){
 }
 ```
 
-###Main function
-```{r}
-mainDataFrame <- data.frame(matrix(ncol = 8, nrow = 0))
-columns <- c("bookID", "numHoles", "category", "averageBirthLocation", "birthLocationSD", "averageDeathLocation", "deathLocationSD", "avgLengthofLife")
-colnames(mainDataFrame) <- columns
-
-main <- function(numLines){
-  for (category in topics){
-    bookShieldIDs <- isolateIDs(category)
-    for (value in bookShieldIDs){
-      bookDTM <- computeDTM(value,numLines)
-      print(value)
-      if (!is.null(bookDTM)){  
-        bookDistanceMatrix <- makeDistanceMatrix(bookDTM)
-        Diag <- ripsDiag(X = bookDistanceMatrix,
-                         maxdimension = 1,
-                         maxscale = 100,
-                         dist = "arbitrary", 
-                         library = "Dionysus",
-                         printProgress = FALSE, 
-                         location=TRUE)
-
-        numHoles <- summary.diagram(Diag[["diagram"]])$n
-        print(numHoles)
-        tempDF <- data.frame(value, numHoles, category, mean(Diag$birthLocation), sd(Diag$birthLocation), mean(Diag$deathLocation), sd(Diag$deathLocation), mean(Diag$deathLocation- Diag$birthLocation))
-        names(tempDF) <- c("bookID", "numHoles", "category", "averageBirthLocation", "birthLocationSD", "averageDeathLocation", "deathLocationSD", "avgLengthofLife")
-        mainDataFrame <- rbind(mainDataFrame,tempDF)
-        
-      }
-      else {
-        print("0 here")
-        tempDF <- data.frame(value, 0, category, 0, 0, 0, 0, 0)
-        names(tempDF) <- c("bookID", "numHoles", "category", "averageBirthLocation", "birthLocationSD", "averageDeathLocation", "deathLocationSD", "avgLengthofLife")
-        mainDataFrame <- rbind(mainDataFrame,tempDF)
-      }
-    }
-  }
-  return(mainDataFrame)
-}
-
-```
 
 ###Approach 2
 
@@ -228,7 +187,7 @@ clusteringPD <- function(numLines){
 
 
 ```{r}
-similarityTable <- clusteringPD(200)
+similarityTable <- clusteringPD(100)
 pamx <- pam(similarityTable, 5, diss = FALSE, cluster.only = FALSE, metric = "manhattan")
 ```
 
