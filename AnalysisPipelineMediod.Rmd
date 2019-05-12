@@ -347,11 +347,11 @@ clusteringPD <- function(numLines){
 ```{r}
 similarityTable <- clusteringPD(100)
 pamx <- pam(similarityTable, 5, diss = FALSE, cluster.only = FALSE, metric = "manhattan")
+
 ```
 
+
 ### ANALYSIS BOTTLENECK EUCLIDEAN
-
-
 ```{r}
 bottleNeckEuclidean_15 <- pamx
 
@@ -383,7 +383,6 @@ getCategory <- function(ID){
   book <- gutenberg_metadata %>% filter(gutenberg_id == ID)
   return(book$gutenberg_bookshelf[1])
 }
-
 
 returnScores <- function(dataframe){
   clusters <- clusteringScore(as.data.frame(dataframe$silinfo))
