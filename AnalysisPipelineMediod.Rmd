@@ -9,22 +9,118 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
 ```{r cars}
-summary(cars)
+library(tidytext)
+library(dplyr)
+library(stringr)
+library(tokenizers)
+library(gutenbergr)
+library(rapportools)
+library(textstem)
+library(text2vec)
+library(stopwords)
+library(TDA)
+library(philentropy)
+library(lsa)
+library(quanteda)
+library(qlcMatrix)
+library(irlba)
+library(tm)
+library(stringi)
+library(utf8)
 ```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+###Load in Data
+```{r}
+gutenberg_filtered <- gutenberg_metadata %>% filter(is.na(author)==FALSE) %>% filter(is.na(title)==FALSE) %>% filter(has_text == TRUE) %>%  filter(rights == "Public domain in the USA.") %>% filter(language == "en")
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+###Selecting categories
+```{r}
+topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Biographies")
+
+#returns vector of gutenbergIDs associated with that topic
+isolateIDs <- function(category){
+  subsetBookshelf <- gutenberg_filtered[grep(category, gutenberg_filtered$gutenberg_bookshelf),]
+  #On May 11, gutenberg_id 2149 was not available on any mirror for download on gutenbergr
+  return(subsetBookshelf$gutenberg_id)
+}
+```
+
+```{r}
+set.seed(471)
+
+children <- isolateIDs("Children's Fiction")
+humor <- isolateIDs("Humor")
+scifi <- isolateIDs("Science Fiction")
+adventure <- isolateIDs("Adventure")
+biographies <- isolateIDs("Biographies")
+
+bookIndexing <- c(length(children), length(humor), length(scifi), length(adventure), length(biographies))
+print(min(bookIndexing))
+#returns 40
+
+children <- sample(children, 40, replace=FALSE, prob=NULL)
+humor <- sample(humor, 40, replace=FALSE, prob=NULL)
+scifi <- sample(scifi, 40, replace=FALSE, prob=NULL)
+adventure <- sample(adventure, 40, replace=FALSE, prob=NULL)
+biographies <- sample(biographies, 40, replace=FALSE, prob=NULL)
+
+bookList <- c(children, humor, scifi, adventure, biographies)
+print(bookList)
+
+
+```
+
+###Approach 2
+```{r}
+collection <- bookList
+
+clusteringPD <- function(numLines){
+  similarityMatrix <- matrix(ncol = length(collection), nrow = length(collection))
+  diag(similarityMatrix) <- 0
+  for (bookIndexHoriz in 1:length(collection)){
+    for (bookIndexVert in 1:length(collection)){
+      if (bookIndexVert > bookIndexHoriz){
+        bookDTM <- computeDTM(collection[bookIndexVert],numLines)
+        otherBookDTM <- computeDTM(collection[bookIndexHoriz],numLines)
+        if (!is.null(bookDTM) && !is.na(otherBookDTM)){  
+          bookDistanceMatrix <- makeDistanceMatrix(bookDTM)
+          otherBookDistanceMatrix <- makeDistanceMatrix(otherBookDTM)
+          Diag <- ripsDiag(X = bookDistanceMatrix,
+                           maxdimension = 1,
+                           maxscale = 100,
+                           dist = "arbitrary", 
+                           library = "Dionysus",
+                           printProgress = FALSE, 
+                           location=TRUE)
+          DiagOther <- ripsDiag(X = otherBookDistanceMatrix,
+                           maxdimension = 1,
+                           maxscale = 100,
+                           dist = "arbitrary", 
+                           library = "Dionysus",
+                           printProgress = FALSE, 
+                           location=TRUE)
+          bottleneckDist <- bottleneck(Diag[["diagram"]], DiagOther[["diagram"]], dimension = 1)
+          similarityMatrix[bookIndexHoriz,bookIndexVert] <- bottleneckDist
+        }
+      }
+      else {
+        similarityMatrix[bookIndexHoriz,bookIndexVert] <- 0
+      }
+    }
+  }
+  mainMatrix <- similarityMatrix + t(similarityMatrix)
+  toReturn <- as.data.frame(mainMatrix)
+  colnames(toReturn) <- collection
+  rownames(toReturn) <- collection
+  return(toReturn)
+  
+}
+```
+
+```{r}
+similarityTable <- clusteringPD(50)
+pamx <- pam(similarityTable, 5)
+```
+
