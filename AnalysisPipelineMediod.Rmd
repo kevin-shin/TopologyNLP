@@ -81,6 +81,33 @@ bookList <- c(293,836,7862,8732,7006,5348,3429,530,7831,3785,998,11565,4660,3653
 
 ```
 
+###Create DTM
+```{r}
+computeDTM <- function(IDNum, lineLimit){
+  book <- gutenberg_download(IDNum, strip=TRUE)
+  book <- transmute(book, gutenberg_id = gutenberg_id, text = iconv(book$text,"UTF-8","UTF-8",sub=''))
+  book <- unnest_tokens(book,input="text",output="Paragraph",token="paragraphs")
+  book <- book[50:(50+lineLimit),]
+  book <- book %>% filter(!is.na(book$Paragraph))
+  book <- VCorpus(VectorSource(book$Paragraph))
+  book <- tm_map(book, stripWhitespace)
+  book <- tm_map(book, content_transformer(tolower))
+  book <- tm_map(book, removeWords, stopwords("english"))
+  book <- tm_map(book, removePunctuation)
+  book <- tm_map(book, stemDocument, language = "english")  
+  dtm <- DocumentTermMatrix(book)
+  dtm <- weightTfIdf(dtm)
+
+  if ((dim(dtm)[2]) > 1){
+    dtmLSA <- lsa(dtm, dims=dimcalc_share())$tk
+    return(dtmLSA)
+  } else {
+    return(NULL)
+  }
+}
+
+```
+
 ###makeDistanceMatrix
 ```{r}
 makeDistanceMatrix <- function(datamatrix){
