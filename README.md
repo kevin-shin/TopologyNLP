@@ -32,8 +32,33 @@ clusteringScore <- function(dataframe){
   return(as.data.frame(normalized))
 }
 ```
+```{r}
+getCategory <- function(ID){
+  book <- gutenberg_metadata %>% filter(gutenberg_id == ID)
+  return(book$gutenberg_bookshelf[1])
+}
+
+
+```
 
 ```{r}
-clusteringScore(bottleNeckMahnattan_15CLUSTERS)
+returnScores <- function(dataframe){
+  clusters <- clusteringScore(as.data.frame(dataframe$silinfo))
+  df <- data.frame("medoidID" = row.names(dataframe$medoids))
+  df <- cbind(df,clusters)
+  df <- df %>% mutate("medoidCategory" = "temp")
+  for (i in 1:nrow(df)){
+    df$medoidCategory[i] <- getCategory(df$medoidID[i])
+  }
+  return(df)
+}
+
 ```
+
+
+```{r}
+#clusteringScore(wassersteinEuclidean_15CLUSTERS)
+returnScores(wassersteinEuclidean_15)
+```
+
 
