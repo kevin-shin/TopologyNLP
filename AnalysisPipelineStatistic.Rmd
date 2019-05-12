@@ -92,7 +92,7 @@ computeDTM <- function(IDNum, lineLimit){
   dtm <- DocumentTermMatrix(book)
   dtm <- weightTfIdf(dtm)
 
-  if ((dim(dtm)[2]) > 1){
+  if ((dim(dtm)[2]) != 0){
     dtmLSA <- lsa(dtm, dims=dimcalc_share())$tk
     return(dtmLSA)
   } else {
@@ -127,6 +127,7 @@ mainDataFrame <- data.frame(matrix(ncol = 8, nrow = 0))
 columns <- c("bookID", "numHoles", "category", "averageBirthLocation", "birthLocationSD", "averageDeathLocation", "deathLocationSD", "avgLengthofLife")
 colnames(mainDataFrame) <- columns
 
+#generate the main dataframe
 main <- function(numLines){
   for (category in topics){
     bookShieldIDs <- isolateIDs(category)
@@ -148,7 +149,6 @@ main <- function(numLines){
         tempDF <- data.frame(value, numHoles, category, mean(Diag$birthLocation), sd(Diag$birthLocation), mean(Diag$deathLocation), sd(Diag$deathLocation), mean(Diag$deathLocation- Diag$birthLocation))
         names(tempDF) <- c("bookID", "numHoles", "category", "averageBirthLocation", "birthLocationSD", "averageDeathLocation", "deathLocationSD", "avgLengthofLife")
         mainDataFrame <- rbind(mainDataFrame,tempDF)
-        
       }
       else {
         print("0 here")
