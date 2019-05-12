@@ -345,11 +345,12 @@ for (book in children){
 
 ```{r}
 #topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Horror")
-
+  
 for (bookID in bookList){
   print(bookID)
   book <- gutenberg_download(bookID, strip=TRUE)
-  book <- transmute(book, gutenberg_id = gutenberg_id, text = iconv(book$text,"UTF-8","UTF-8",sub=''))
+  category <- gutenberg_metadata %>% filter(gutenberg_id == bookID)
+  print(category$gutenberg_bookshelf)
 }
 
 
