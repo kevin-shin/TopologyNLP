@@ -21,7 +21,7 @@ library(textstem)
 library(text2vec)
 library(stopwords)
 library(TDA)
-library(philentropy)
+library(philentropy) 
 library(lsa)
 library(quanteda)
 library(qlcMatrix)
@@ -34,12 +34,11 @@ library(utf8)
 ###Load in Data
 ```{r}
 gutenberg_filtered <- gutenberg_metadata %>% filter(is.na(author)==FALSE) %>% filter(is.na(title)==FALSE) %>% filter(has_text == TRUE) %>%  filter(rights == "Public domain in the USA.") %>% filter(language == "en")
+topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Biographies")
 ```
 
 ###Selecting categories
 ```{r}
-topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Biographies")
-
 #returns vector of gutenbergIDs associated with that topic
 isolateIDs <- function(category){
   subsetBookshelf <- gutenberg_filtered[grep(category, gutenberg_filtered$gutenberg_bookshelf),]
@@ -48,7 +47,8 @@ isolateIDs <- function(category){
   subsetBookshelf <- subsetBookshelf[subsetBookshelf != 19513]
   subsetBookshelf <- subsetBookshelf[subsetBookshelf != 19515]
   subsetBookshelf <- subsetBookshelf[subsetBookshelf != 19526]
-  
+  subsetBookshelf <- subsetBookshelf[subsetBookshelf != 4290]
+  return(subsetBookshelf[1:100])
 }
 ```
 
@@ -123,10 +123,6 @@ makeDistanceMatrix <- function(datamatrix){
 
 ###Main function
 ```{r}
-
-topics <- c("Humor", "Science Fiction")
-#topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Biographies")
-
 mainDataFrame <- data.frame(matrix(ncol = 8, nrow = 0))
 columns <- c("bookID", "numHoles", "category", "averageBirthLocation", "birthLocationSD", "averageDeathLocation", "deathLocationSD", "avgLengthofLife")
 colnames(mainDataFrame) <- columns
@@ -168,7 +164,6 @@ main <- function(numLines){
 ```
 
 ```{r}
-#topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Horror")
 Statistics <- c("numHoles","averageBirthLocation", "averageDeathLocation","avgLengthofLife")
 
 compareStatistics <- function(dataFrame, statistic){
