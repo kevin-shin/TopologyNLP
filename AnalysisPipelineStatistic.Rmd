@@ -169,7 +169,7 @@ main <- function(numLines){
 ```{r}
 Statistics <- c("numHoles","averageBirthLocation", "averageDeathLocation","avgLengthofLife")
 
-compareStatistics <- function(dataFrame, statistic){
+compareStatistics <- function(dataFrame){
     df <- data.frame(matrix(0, ncol = 5, nrow = 5))
     colnames(df) <- topics
     rownames(df) <- topics
@@ -177,7 +177,7 @@ compareStatistics <- function(dataFrame, statistic){
       for (col in colnames(df)){
         genreRowTable <- dataFrame %>% filter(category == row)
         genreColTable <- dataFrame %>% filter(category == col)
-        significanceLevel <- t.test(genreRowTable$statistic, genreColTable$statistic)$p.value
+        significanceLevel <- t.test(genreRowTable$averageDeathLocation, genreColTable$averageDeathLocation)$p.value
         df[row,col] <- significanceLevel
       }
     }
@@ -185,7 +185,6 @@ compareStatistics <- function(dataFrame, statistic){
 }
 
 ```
-
 
 
 

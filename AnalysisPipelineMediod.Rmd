@@ -400,5 +400,16 @@ returnScores(bottleNeckEuclidean_15)
 ```
 
 
-
+```{r}
+example <- data.frame(doc_id = c(1:4),
+                       text=c("i thought well as well",
+                              "him as another and",
+                              "then I asked him with",
+                              "my eyes to ask"))
+text.c <- VCorpus(DataframeSource(example))
+DTM <- DocumentTermMatrix(text.c,
+                          control=list(removePunctuation=TRUE,
+                                       wordLengths=c(1, Inf)))
+View(DTM)
+```
 
