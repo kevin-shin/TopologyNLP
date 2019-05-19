@@ -1,64 +1,6 @@
-# TopologyNLP
+# Genre Classification: A Topological Data Analysis Approach
 
-```{r}
-bottleNeckManhattan_15 <- pamx
-bottleNeckMahnattan_15CLUSTERS <- as.data.frame(bottleNeckManhattan_15$silinfo)
-```
+This repository is the source of the code for a project in Topological Data Analysis. For a complete explanation of the project, see [the paper](https://github.com/kevin-shin/TopologyNLP/blob/master/GenreClassification_TDA_Approach.pdf). For convenience, the abstract is provided here: 
 
-
-```{r}
-evaluateClusters <- function(dataframe,i){
-    return(row.names(subset(dataframe,widths.cluster == i)))
-}
-
-clusteringScore <- function(dataframe){
-  df <- data.frame(matrix(0L,nrow = length(unique(dataframe$widths.cluster)), ncol = 5))
-  colnames(df) <- topics
-  rownames(df) <- unique(dataframe$widths.cluster)
-  for (i in rownames(df)){
-    clusterVector <- evaluateClusters(dataframe,i)
-    for (value in clusterVector){
-      relBook <- gutenberg_metadata %>% filter(gutenberg_id == value)
-      category <- relBook$gutenberg_bookshelf
-      for (genre in colnames(df))
-        if (grepl(genre,category)){
-          df[i,genre] <- df[i,genre] + 1
-        }
-    }
-  }
-  normalized <- normalize.rows(df)
-  colnames(normalized) <- topics
-  rownames(normalized) <- unique(dataframe$widths.cluster)
-  return(as.data.frame(normalized))
-}
-```
-```{r}
-getCategory <- function(ID){
-  book <- gutenberg_metadata %>% filter(gutenberg_id == ID)
-  return(book$gutenberg_bookshelf[1])
-}
-
-
-```
-
-```{r}
-returnScores <- function(dataframe){
-  clusters <- clusteringScore(as.data.frame(dataframe$silinfo))
-  df <- data.frame("medoidID" = row.names(dataframe$medoids))
-  df <- cbind(df,clusters)
-  df <- df %>% mutate("medoidCategory" = "temp")
-  for (i in 1:nrow(df)){
-    df$medoidCategory[i] <- getCategory(df$medoidID[i])
-  }
-  return(df)
-}
-
-```
-
-
-```{r}
-#clusteringScore(wassersteinEuclidean_15CLUSTERS)
-returnScores(wassersteinEuclidean_15)
-```
-
-
+Abstract: Topological Data Analysis (TDA) is a field of applied mathematics in which tools from topology are used to analyze a dataset. The intuition is that by forming a ge- ometric representation that models the data space, important structural features are revealed by analyzing its homological features, which may then have significance in the context of the collected data. Thus, TDA provides an avenue to explore large, potentially high-dimensional data sets in a mathematically rigorous way.
+This project focuses on an application of TDA to Natural Language Processing (NLP), a multidisciplinary area of study which broadly aims to develop computational tools and models to analyze language. By employing NLP techniques to transform text into vectors, I develop a way of analyzing a data set of books downloaded from Project Gutenberg and differentiate them by their listed genre. An algorithm (Zhu 2013) is ex- plored and implemented to capture the “shape of text”, and topological tools are applied to extract the homological features of each book. I discuss two different perspectives on classification (1) a t-test on homological statistics (dimensions of H1, feature birth location, etc.) and (2) a k-medoids approach in which clusters of the vector space are formed by associating points close to a medoid. The results of this experiment confirm that TDA provides a powerful way of analyzing text, and I conclude by reflecting on future work necessary to improve the usage of TDA in NLP.
