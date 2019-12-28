@@ -1,0 +1,89 @@
+---
+title: "test_outputs"
+author: "Kevin Shin"
+date: "12/27/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+line_limit <- 50
+for (category in topics) {
+    book_IDs <- isolate_IDs(category)
+    for (value in book_IDs) {
+      print("NEW BOOK")  
+      print(value)
+        book <- gutenberg_download(value, strip=TRUE)
+        book <- transmute(book, gutenberg_id = gutenberg_id, text = iconv(book$text,"UTF-8","UTF-8",sub=''))
+        book <- unnest_tokens(book,input="text",output="Paragraph",token="paragraphs")
+        print(nrow(book))
+        book <- book[20:(20+line_limit),]
+        print(book)
+        book <- book %>% filter(!is.na(book$Paragraph))
+        print("I'm filtered")
+        print(book)
+        print(nrow(book))
+    }
+}
+```
+
+
+```{r}
+for (book in children){
+  print(book)
+  book <- gutenberg_download(book, strip=TRUE)
+  View(book)
+  book <- transmute(book, gutenberg_id = gutenberg_id, text = iconv(book$text,"UTF-8","UTF-8",sub=''))
+}
+
+
+```
+
+```{r}
+#topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Reference", "Horror")
+  
+for (bookID in bookList){
+  print(bookID)
+  book <- gutenberg_download(bookID, strip=TRUE)
+  category <- gutenberg_metadata %>% filter(gutenberg_id == bookID)
+  print(category$gutenberg_bookshelf)
+}
+
+
+```
+
+```{r}
+DTM_6995 <- gutenberg_download(6995,strip=TRUE)
+DTM_6995_STRI <- transmute(DTM_6995, gutenberg_id = gutenberg_id, text = stri_enc_toutf8(DTM_6995$text, is_unknown_8bit = TRUE, validate = TRUE))
+
+DTM_6995_UTF <- transmute(DTM_6995, gutenberg_id = gutenberg_id, text = iconv(DTM_6995$text,"UTF-8","UTF-8",sub=''))
+
+#book <- unnest_tokens(DTM_6995_STRI,input="text",output="Paragraph",token="paragraphs")
+book2 <- unnest_tokens(DTM_6995_UTF,input="text",output="Paragraph",token="paragraphs")
+
+```
+
+

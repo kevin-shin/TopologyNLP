@@ -1,0 +1,83 @@
+---
+title: "Examples"
+author: "Kevin Shin"
+date: "12/27/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Example Calls and Plots
+```{r}
+DTM_1257 <- compute_DTM(1257, 120)
+DM_1257 <- make_distance_matrix(DTM_1257)
+
+Diag1257 <- ripsDiag(X = DM_1257,
+                 maxdimension = 1,
+                 maxscale = 50,
+                 dist = "arbitrary", 
+                 library = "Dionysus",
+                 printProgress = FALSE, 
+                 location=TRUE)
+
+print(summary.diagram(Diag1257[["diagram"]]))
+print(mean(Diag1257$birthLocation))
+print(sd(Diag1257$birthLocation))
+print(mean(Diag1257$deathLocation))
+print(sd(Diag1257$deathLocation))
+print(mean(Diag1257$birthLocation-Diag1257$deathLocation))
+plot(Diag1257[["diagram"]])
+plot(Diag1257[["diagram"]], barcode=TRUE, main="Barcode from DTM_1257")
+
+```
+
+```{r}
+##Adventure, Three Musketeers
+DTM_1257 <- compute_DTM(1257, 50)
+DM_1257 <- make_distance_matrix(DTM_1257)
+print(DM_1257)
+
+##Humor, A Damsel in Distress PG Wodehouse
+DTM_2233 <- compute_DTM(2233, 50)
+DM_2233 <- make_distance_matrix(DTM_2233)
+print(DM_2233)
+```
+
+
+```{r}
+DTM_2233 <- compute_DTM(2233, 120)
+DM_2233 <- make_distance_matrix(DTM_2233)
+
+Diag2233 <- ripsDiag(X = DM_2233,
+                 maxdimension = 1,
+                 maxscale = 4,
+                 dist = "arbitrary", 
+                 library = "Dionysus",
+                 printProgress = FALSE)
+
+print(summary.diagram(Diag2233[["diagram"]]))
+plot(Diag2233[["diagram"]])
+print(Diag2233[["diagram"]])
+plot(Diag2233[["diagram"]], barcode=TRUE, main="Barcode from DTM_2233")
+
+```
+
+
+```{r}
+DTM_2233 <- compute_DTM(30324, 120)
+DM_2233 <- make_distance_matrix(DTM_2233)
+
+Diag2233 <- ripsDiag(X = DM_2233,
+                 maxdimension = 1,
+                 maxscale = 1,
+                 dist = "arbitrary", 
+                 library = "Dionysus",
+                 printProgress = FALSE)
+
+print(summary.diagram(Diag2233[["diagram"]]))
+plot(Diag2233[["diagram"]])
+plot(Diag2233[["diagram"]], barcode=TRUE, main="Barcode from DTM_30324")
+```

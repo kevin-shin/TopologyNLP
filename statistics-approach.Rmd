@@ -1,0 +1,59 @@
+---
+title: "AnalysisPipelineStatistic"
+author: "Kevin Shin"
+date: "5/4/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+###Libraries
+```{r cars}
+library(tidytext)
+library(knitr)
+library(dplyr)
+library(stringr)
+library(tokenizers)
+library(gutenbergr)
+library(rapportools)
+library(textstem)
+library(text2vec)
+library(stopwords)
+library(TDA)
+library(philentropy)
+library(lsa)
+library(quanteda)
+library(qlcMatrix)
+library(irlba)
+library(tm)
+library(stringi)
+library(utf8)
+library(cluster)
+library(gofastr)
+library(vegetarian)
+```
+
+###Functions
+```{r}
+source("data-processing.R")
+```
+
+### Main
+```{r}
+main_dataframe <- main(100)
+View(main_dataframe)
+
+statistics_frame <- compare_statistics(main_dataframe)
+View(statistics_frame)
+```
+
+
+### Miscellaneous
+```
+#bookList <- c(293,836,7862,8732,7006,5348,3429,530,7831,3785,998,11565,4660,3653,8670,874,11609,11602,9745,5623,2805,5417,5828,5075,6461,10340,1573,7493,770,3674,7037,3811,11151,528,296,7229,5747,5696,11111,5207,8679,399,646,10724,7124,2183,8713,22518,23338,6837,13647,9449,13872,24313,13993,6984,6768,6985,7464,13650,6836,4064,7298,6927,20633,22145,6840,4020,21427,23783,8176,2005,8931,3425,6879,20532,13648,24018,18881,4075,972,7833,8178,22689,4729, 14667, 11138,  2607,  4682, 14684,  7250, 10662,    84,   36,  7246,  7248, 18151,   605,    42, 13944,  7052,  9194, 11696,   551,    68,   159,   552,  8673, 17355,   123,   553,   149, 18137,  6585, 11870,  1329,  6903,  9862,  1607,  7401, 12901,  3479,  2488,   369,    86,  7244,    96,  1250,  6717,   604, 17958,  7242, 18109,   126,  1951,  2759,  5174, 18970,   558,    60, 2166,  5194,   103,  2710,  1690,  5745,  1259, 19307,  1724,  5746,   559, 10422,   848,  1947,    78,  2681, 24920,  2713,  5315,    92,  1257,  1184,   589,   421,  2785, 27525,  1752,  6751,711, 1965,    85,  3526,  1145, 10743,  1711,  2727,  6769,  2609,   106,  2226, 16965, 45456, 19767,   590, 12406, 14555,   813, 16469, 10598,  1702, 21091,  4689, 12014,  1265,  9069, 21677,20733,  4667,   412, 12090, 45532, 14392, 13888,  2563,  6312,  2082,   529, 12985, 12984,  4691, 14992, 20439,  4690, 22345,  6702, 10622, 18757,  4693, 17388, 14004, 10986,  8770,  2447,  3029, 539)
+```
+
+
+
