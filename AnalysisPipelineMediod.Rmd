@@ -31,6 +31,7 @@ library(tm)
 library(stringi)
 library(utf8)
 library(cluster)
+library(gofastr)
 library(vegetarian)
 ```
 
@@ -97,21 +98,24 @@ computeDTM <- function(IDNum, lineLimit){
   book <- VCorpus(VectorSource(book$Paragraph))
   book <- tm_map(book, stripWhitespace)
   book <- tm_map(book, content_transformer(tolower))
-  book <- tm_map(book, removeWords, stopwords("english"))
   book <- tm_map(book, removePunctuation)
+  book <- tm_map(book, removeWords, stopwords("english"))
   book <- tm_map(book, stemDocument, language = "english")  
   dtm <- DocumentTermMatrix(book)
   dtm <- weightTfIdf(dtm)
-
+  dtm <- removeSparseTerms(dtm, 0.95)
+  dtm <- filter_documents(dtm, min=0.0000000000000001)
+  
   if ((dim(dtm)[2]) > 1){
     dtmLSA <- lsa(dtm, dims=dimcalc_share())$tk
     return(dtmLSA)
   } else {
     return(NULL)
   }
-}
 
+}
 ```
+
 
 ###makeDistanceMatrix
 ```{r}
