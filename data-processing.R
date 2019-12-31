@@ -26,7 +26,6 @@ library(vegetarian)
 topics <- c("Children's Fiction", "Humor", "Science Fiction", "Adventure", "Biographies")
 set.seed(471)
 
-
 gutenberg_filtered <- gutenberg_metadata %>% 
   filter(is.na(author)==FALSE) %>% 
   filter(is.na(title)==FALSE) %>% 
@@ -52,7 +51,6 @@ biographies <- sample(biographies, min_index, replace=FALSE, prob=NULL)
 
 #vector with IDs of all relevant books.
 book_list <- c(children, humor, scifi, adventure, biographies)
-
 
 #-------> Functions
 isolate_IDs <- function(category){
@@ -107,6 +105,7 @@ main <- function(num_lines){
   main_data_frame <- data.frame(matrix(ncol = 8, nrow = 0))
   columns <- c("bookID", "num_holes", "category", "avg_birth_loc", "birth_loc_stdev", "avg_death_loc", "death_loc_stdev", "avg_length_life")
   colnames(main_data_frame) <- columns
+  
   for (category in topics){
     book_IDs <- isolate_IDs(category)
     for (value in book_IDs) {
